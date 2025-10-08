@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" class="scrollbar-hidden h-screen overflow-hidden">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Code Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+  <style>
+    .group .tooltip{visibility:hidden;opacity:0;transition:opacity .3s;}
+    .group:hover .tooltip{visibility:visible;opacity:1;}
+
+    /* Inner scrollbars; page scrollbar hidden */
+    ::-webkit-scrollbar{width:12px;}
+    ::-webkit-scrollbar-track{background:#111827;}
+    ::-webkit-scrollbar-thumb{background-color:#4b5563;border-radius:20px;border:3px solid #111827;}
+
+    @layer utilities{
+      .scrollbar-hidden::-webkit-scrollbar{display:none;}
+      .scrollbar-hidden{-ms-overflow-style:none;scrollbar-width:none;}
+    }
+
+    :root{
+      --header-h:116px;
+      --footer-h:64px;
+      --grid-gap:24px;
+      --card-radius:0.75rem;
+      --card-border:#374151;
+      --card-bg:#0b0f19;
+      --inner-bg:#000000;
+    }
+
+    .app-grid{ height:calc(100vh - var(--header-h) - var(--footer-h) - var(--grid-gap)); min-height:500px; }
+
+    /* Prism line numbers */
+    pre[class*="language-"].line-numbers{position:relative;padding-left:3.8em!important;counter-reset:linenumber;}
+    .line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;letter-spacing:-1px;border-right:1px solid #374151;user-select:none;}
+    .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber;}
+    .line-numbers-rows>span:before{content:counter(linenumber);color:#555862;display:block;padding-right:.8em;text-align:right;}
+    code[class*="language-"],pre[class*="language-"]{background:transparent!important;}
+
+    #input-code-highlighted{position:relative;overflow:auto!important;display:block;border-radius:calc(var(--card-radius) - 0.25rem);}
+    #input-code-highlighted>textarea,
+    #input-code-highlighted>pre{
+      margin:0!important;padding:1rem 1rem 1rem 3.8em!important;white-space:pre!important;overflow-wrap:normal!important;
+      line-height:1.5rem!important;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace!important;
+      font-size:14px!important;tab-size:2;height:100%!important;width:100%!important;box-sizing:border-box;border-radius:calc(var(--card-radius) - 0.25rem);
+    }
+    #input-code-highlighted>textarea{color:transparent;background:transparent;caret-color:white;position:absolute;inset:0;resize:none;z-index:10;}
+    #input-code-highlighted>pre{position:absolute;inset:0;pointer-events:none;z-index:0;}
+  </style>
+</head>
+<body class="bg-gray-900 text-white antialiased flex flex-col h-screen overflow-hidden scrollbar-hidden">
+
+  <!-- Header -->
+  <div class="container mx-auto px-4 pt-6 flex-shrink-0" style="height:var(--header-h);">
+    <header class="text-center">
+      <h1 class="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-600">
+        AI Code Review
+      </h1>
+      <p class="mt-2 text-base text-gray-400 max-w-2xl mx-auto">
+        Paste your code, get an expert review, and improve your skills.
+      </p>
+    </header>
+  </div>
+
+  <!-- Main -->
+  <main id="main-container" class="container mx-auto px-4 flex-1 min-h-0 pb-[calc(var(--footer-h)+var(--grid-gap))]">
+    <div class="flex flex-col gap-[var(--grid-gap)] min-h-0">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-[var(--grid-gap)] app-grid">
+        <!-- Your Code -->
+        <section class="min-h-0">
+          <div class="h-full rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden">
+            <div class="px-4 py-2 border-b border-[var(--card-border)] flex items-center justify-between">
+              <h3 class="text-xs font-bold text-indigo-300 tracking-widest uppercase">Your Code</h3>
+              <div class="flex items-center space-x-3">
+                <button class="fullscreen-btn text-gray-400 hover:text-white" data-target="input-code">&#x26F6;</button>
+                <button id="clear-btn" class="text-gray-400 hover:text-white">&#x1F5D1;</button>
+              </div>
+            </div>
+            <div class="p-2 h-[calc(100%-40px)]">
+              <div id="input-code-highlighted" class="relative w-full h-full overflow-auto bg-[var(--inner-bg)] rounded-[calc(var(--card-radius)-0.25rem)]">
+                <textarea id="input-code" spellcheck="false"></textarea>
+                <pre class="line-numbers"><code id="input-code-display" class="language-js"></code></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right: equal-height two rows -->
+        <section class="relative min-h-0">
+          <div id="loader" class="absolute inset-0 bg-gray-900/80 flex items-center justify-center rounded-[var(--card-radius)] hidden z-30">
+            <div class="flex flex-col items-center">
+              <svg class="animate-spin h-8 w-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p class="mt-2 text-gray-300">Analyzing code...</p>
+            </div>
+          </div>
+
+          <div class="grid grid-rows-2 gap-4 h-full min-h-0">
+            <div class="rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden min-h-0">
+              <div class="px-4 py-2 border-b border-[var(--card-border)] flex items-center justify-between">
+                <h3 class="text-xs font-bold text-indigo-300 tracking-widest uppercase">Review & Mistakes</h3>
+                <button class="fullscreen-btn text-gray-400 hover:text-white" data-target="review-output">&#x26F6;</button>
+              </div>
+              <div class="p-2 h-[calc(100%-40px)]">
+                <div id="review-output" class="w-full h-full p-4 overflow-auto text-sm space-y-4 bg-[var(--inner-bg)] rounded-[calc(var(--card-radius)-0.25rem)]">AI's feedback will appear here...</div>
+              </div>
+            </div>
+
+            <div class="rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden min-h-0">
+              <div class="px-4 py-2 border-b border-[var(--card-border)] flex items-center justify-between">
+                <h3 class="text-xs font-bold text-indigo-300 tracking-widest uppercase">Updated Code</h3>
+                <div class="flex items-center space-x-3">
+                  <button class="fullscreen-btn text-gray-400 hover:text-white" data-target="output-code-container">&#x26F6;</button>
+                  <button id="copy-btn" class="text-gray-400 hover:text-white">&#x1F4CB;</button>
+                </div>
+              </div>
+              <div class="p-2 h-[calc(100%-40px)]">
+                <div id="output-code-container" class="w-full h-full overflow-auto bg-[var(--inner-bg)] rounded-[calc(var(--card-radius)-0.25rem)]"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="error-box" class="hidden fixed bottom-[calc(var(--footer-h)+16px)] right-4 max-w-md p-4 bg-red-900 border border-red-700 text-red-100 rounded-lg shadow-2xl z-50">
+        <p id="error-message"></p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer: SCORE minimized to exactly the Review button size -->
+  <footer class="sticky bottom-0 z-40 bg-gray-900/90 backdrop-blur border-t border-gray-800" style="height:var(--footer-h);">
+    <div class="container mx-auto px-4 h-full">
+      <div class="h-full grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+        <!-- Review (reference size) -->
+        <div class="flex justify-start">
+          <button id="review-btn" class="w-[240px] md:w-[260px] h-[48px] px-8 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none transition-transform transform hover:scale-105 flex items-center justify-center">
+            Review My Code
+          </button>
+        </div>
+
+        <!-- Feedback -->
+        <div class="flex justify-center">
+          <a href="https://mail.google.com/mail/?view=cm&fs=1&to=vikas.sgowda1@gmail.com" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-300 hover:text-indigo-300 underline">
+            Feedback
+          </a>
+        </div>
+
+        <!-- SCORE with identical width and height -->
+        <div class="flex justify-end">
+          <button type="button" class="w-[240px] md:w-[260px] h-[48px] px-4 bg-gray-800/60 border border-gray-700 rounded-lg shadow-md flex items-center justify-between">
+            <span class="text-sm text-gray-300 uppercase tracking-wider">Score:</span>
+            <span id="score-display" class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">N/A</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm hidden z-50 p-4 sm:p-8 flex flex-col">
+    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+      <h3 id="modal-title" class="text-lg font-bold text-indigo-300 tracking-widest uppercase"></h3>
+      <div>
+        <button id="modal-clear-btn" class="hidden text-gray-400 hover:text-white mr-4">&#x1F5D1; Clear</button>
+        <button id="modal-copy-btn" class="hidden text-gray-400 hover:text-white mr-4">&#x1F4CB; Copy</button>
+        <button id="modal-close" class="text-white text-4xl hover:text-gray-300">&times;</button>
+      </div>
+    </div>
+    <div id="modal-content" class="w-full h-full bg-black border border-gray-700 rounded-lg overflow-auto flex-grow"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+
+  <script type="module">
+    // --- ELEMENT SELECTORS ---
+    const allElements = {
+      reviewBtn: document.getElementById('review-btn'),
+      clearBtn: document.getElementById('clear-btn'),
+      copyBtn: document.getElementById('copy-btn'),
+      inputCode: document.getElementById('input-code'),
+      inputCodeDisplay: document.getElementById('input-code-display'),
+      reviewOutput: document.getElementById('review-output'),
+      outputCodeContainer: document.getElementById('output-code-container'),
+      scoreDisplay: document.getElementById('score-display'),
+      loader: document.getElementById('loader'),
+      modal: document.getElementById('modal'),
+      modalContent: document.getElementById('modal-content'),
+      modalClose: document.getElementById('modal-close'),
+      modalTitle: document.getElementById('modal-title'),
+      modalClearBtn: document.getElementById('modal-clear-btn'),
+      modalCopyBtn: document.getElementById('modal-copy-btn'),
+      errorBox: document.getElementById('error-box'),
+      errorMessage: document.getElementById('error-message'),
+    };
+
+    let lastUpdatedCode = '';
+    let lastUpdatedLang = 'clike';
+
+    // --- SYNTAX HIGHLIGHTING FOR INPUT AREA ---
+    function updateInputHighlight() {
+      const code = allElements.inputCode.value;
+      const tempCodeEl = document.createElement('code');
+      tempCodeEl.textContent = code;
+      Prism.highlightElement(tempCodeEl);
+      allElements.inputCodeDisplay.innerHTML = tempCodeEl.innerHTML + '\n';
+      const preParent = allElements.inputCodeDisplay.parentElement;
+      preParent.className = 'line-numbers';
+      Prism.highlightAllUnder(preParent);
+    }
+    allElements.inputCode.addEventListener('input', updateInputHighlight);
+    allElements.inputCode.addEventListener('scroll', () => {
+      const preElement = allElements.inputCodeDisplay.parentElement;
+      preElement.scrollTop = allElements.inputCode.scrollTop;
+      preElement.scrollLeft = allElements.inputCode.scrollLeft;
+    });
+
+    // --- API CALL LOGIC (plain text + tolerant JSON parse) ---
+    async function callGeminiAPI(code) {
+      const apiKey = "AIzaSyDxmB3457Wevp0amc-QzT56HfyyvdkJfyo"; // unchanged
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: buildPrompt(code) }] }],
+        generationConfig: { response_mime_type: "text/plain" }
+      };
+
+      const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error?.message || response.statusText);
+      }
+      const result = await response.json();
+
+      const cands = Array.isArray(result?.candidates) ? result.candidates : [];
+      const parts = cands[0]?.content?.parts;
+      let textResponse = '';
+
+      if (Array.isArray(parts) && parts.length) {
+        const p = parts.find(p => typeof p?.text === 'string') || parts[0];
+        textResponse = (p && typeof p.text === 'string') ? p.text : '';
+      }
+      if (!textResponse && typeof result?.text === 'string') textResponse = result.text;
+      if (!textResponse && cands.length) {
+        textResponse = cands
+          .flatMap(c => Array.isArray(c?.content?.parts) ? c.content.parts : [])
+          .map(p => typeof p?.text === 'string' ? p.text : '')
+          .filter(Boolean)
+          .join('\n');
+      }
+      if (!textResponse) throw new Error('AI response did not include text to parse.');
+      return parseWithRepair(textResponse);
+    }
+
+    function buildPrompt(code) {
+      return `
+Analyze the code snippet. If it's not code, return exactly: {"error":"Input is not a valid code snippet."}
+If it is code, return a single JSON object with:
+{"language":"...","review":"... (markdown bullets allowed)","updatedCode":"... or empty string","score":NUMBER}
+No extra commentary outside JSON.
+
+Code to review:
+\`\`\`
+${code}
+\`\`\`
+`.trim();
+    }
+
+    function parseWithRepair(text) {
+      let m = text.match(/``````/i) || text.match(/``````/);
+      let jsonString = m ? m[1] : '';
+      if (!jsonString) {
+        const braceStart = text.indexOf('{');
+        if (braceStart !== -1) {
+          let depth = 0, end = -1;
+          for (let i = braceStart; i < text.length; i++) {
+            const ch = text[i];
+            if (ch === '{') depth++;
+            else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
+          }
+          if (end !== -1) jsonString = text.slice(braceStart, end + 1);
+        }
+      }
+      if (!jsonString) throw new Error("AI response did not contain a JSON object.");
+      try { return JSON.parse(jsonString); }
+      catch {
+        const repaired = jsonString
+          .replace(/,\s*([}\]])/g, '$1')
+          .replace(/[\u201C\u201D]/g, '"')
+          .replace(/[\u2018\u2019]/g, "'");
+        return JSON.parse(repaired);
+      }
+    }
+
+    allElements.reviewBtn.addEventListener('click', async () => {
+      const userCode = allElements.inputCode.value.trim();
+      if (!userCode) { showError("Please paste some code to review."); return; }
+      if (userCode.length < 10 && !/[;{}=<>()\[\]]/.test(userCode)) { showError("Input looks like plain text. Paste a real code snippet to run review."); return; }
+
+      hideError();
+      allElements.loader.classList.remove('hidden');
+      allElements.reviewBtn.disabled = true;
+
+      try {
+        const result = await callGeminiAPI(userCode);
+        if (result.error) { throw new Error(result.error); }
+        allElements.reviewOutput.innerHTML = formatReviewAsHtml(result.review);
+        let codeToDisplay = "No changes needed. Your code is looking great!";
+        if (result.updatedCode && result.updatedCode.trim() !== "") { codeToDisplay = result.updatedCode; }
+        lastUpdatedCode = codeToDisplay;
+        lastUpdatedLang = result.language || 'clike';
+        displayHighlightedCode(lastUpdatedCode, lastUpdatedLang);
+        animateScore(result.score);
+      } catch (error) {
+        showError(`An error occurred: ${error.message}`);
+      } finally {
+        allElements.loader.classList.add('hidden');
+        allElements.reviewBtn.disabled = false;
+      }
+    });
+
+    function clearAll() {
+      allElements.inputCode.value = '';
+      updateInputHighlight();
+      allElements.reviewOutput.innerHTML = "AI's feedback will appear here...";
+      allElements.outputCodeContainer.innerHTML = '';
+      lastUpdatedCode = '';
+      allElements.scoreDisplay.textContent = 'N/A';
+      hideError();
+    }
+    allElements.clearBtn.addEventListener('click', clearAll);
+    allElements.modalClearBtn.addEventListener('click', () => { clearAll(); allElements.modal.classList.add('hidden'); });
+
+    function copyCode() {
+      if (lastUpdatedCode) {
+        const t = document.createElement('textarea');
+        t.value = lastUpdatedCode;
+        document.body.appendChild(t);
+        try { t.select(); document.execCommand('copy'); return true; }
+        catch { return false; }
+        finally { document.body.removeChild(t); }
+      }
+      return false;
+    }
+    allElements.copyBtn.addEventListener('click', () => {
+      if (copyCode()) {
+        const original = allElements.copyBtn.innerHTML;
+        allElements.copyBtn.innerHTML = '&#x2713;';
+        setTimeout(() => { allElements.copyBtn.innerHTML = original; }, 2000);
+      }
+    });
+    allElements.modalCopyBtn.addEventListener('click', () => {
+      if (copyCode()) {
+        const original = allElements.modalCopyBtn.textContent;
+        allElements.modalCopyBtn.textContent = 'Copied!';
+        setTimeout(() => { allElements.modalCopyBtn.textContent = 'Copy'; }, 2000);
+      }
+    });
+
+    document.querySelectorAll('.fullscreen-btn').forEach(btn => {
+      btn.addEventListener('click', () => showInModal(btn.dataset.target));
+    });
+
+    function showInModal(targetId) {
+      let content=''; let isCode=false; let lang='clike';
+      allElements.modalClearBtn.classList.add('hidden'); allElements.modalCopyBtn.classList.add('hidden');
+      if (targetId==='input-code') { content=document.getElementById(targetId).value; isCode=true; lang='javascript'; allElements.modalTitle.textContent="Your Code"; allElements.modalClearBtn.classList.remove('hidden'); }
+      else if (targetId==='output-code-container') { content=lastUpdatedCode; isCode=true; lang=lastUpdatedLang; allElements.modalTitle.textContent="Updated Code"; allElements.modalCopyBtn.classList.remove('hidden'); }
+      else { content=document.getElementById(targetId).innerHTML; allElements.modalTitle.textContent="Review & Mistakes"; }
+      allElements.modalContent.innerHTML='';
+      if (isCode) {
+        const pre=document.createElement('pre'); pre.className='line-numbers h-full';
+        const codeEl=document.createElement('code'); codeEl.className=`language-${lang.toLowerCase()}`; codeEl.textContent=content;
+        pre.appendChild(codeEl); allElements.modalContent.appendChild(pre); Prism.highlightElement(codeEl);
+      } else {
+        allElements.modalContent.innerHTML=content;
+      }
+      allElements.modal.classList.remove('hidden');
+    }
+    allElements.modalClose.addEventListener('click',()=>allElements.modal.classList.add('hidden'));
+    allElements.modal.addEventListener('click',(e)=>{ if(e.target===allElements.modal){ allElements.modal.classList.add('hidden'); }});
+
+    function displayHighlightedCode(code, language) {
+      allElements.outputCodeContainer.innerHTML='';
+      const pre=document.createElement('pre'); pre.className='line-numbers';
+      const codeEl=document.createElement('code'); codeEl.className=language?`language-${language.toLowerCase()}`:'clike';
+      codeEl.textContent=code; pre.appendChild(codeEl); allElements.outputCodeContainer.appendChild(pre); Prism.highlightElement(codeEl);
+    }
+    function formatReviewAsHtml(reviewText) {
+      const lines=reviewText.split('\n').filter(line=>line.trim()!==''&&line.includes('*'));
+      let html=''; lines.forEach(line=>{ let t=line.trim(); if(t.startsWith('*')) t=t.substring(1).trim();
+        if(t){ html+=`<div class="flex items-start space-x-3 text-gray-300"><span class="text-indigo-400 text-lg mt-1">&#10148;</span><p class="flex-1">${t.replace(/\*\*(.*?)\*\*/g,'<strong class="font-semibold text-indigo-300">$1</strong>')}</p></div>`;}
+      }); return html;
+    }
+    function animateScore(finalScore){ let currentScore=0; const timer=setInterval(()=>{ currentScore++; allElements.scoreDisplay.textContent=currentScore; if(currentScore>=finalScore) clearInterval(timer); },20); }
+    function showError(message){ allElements.errorMessage.textContent=message; allElements.errorBox.classList.remove('hidden'); setTimeout(()=>hideError(),5000); }
+    function hideError(){ allElements.errorBox.classList.add('hidden'); }
+
+    updateInputHighlight();
+  </script>
+</body>
+</html>

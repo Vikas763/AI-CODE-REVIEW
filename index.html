@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="scrollbar-hidden h-screen overflow-hidden">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,7 +11,7 @@
     .group .tooltip{visibility:hidden;opacity:0;transition:opacity .3s;}
     .group:hover .tooltip{visibility:visible;opacity:1;}
 
-    /* Inner scrollbars; page scrollbar hidden */
+    /* Themed scrollbar for the whole page */
     ::-webkit-scrollbar{width:12px;}
     ::-webkit-scrollbar-track{background:#111827;}
     ::-webkit-scrollbar-thumb{background-color:#4b5563;border-radius:20px;border:3px solid #111827;}
@@ -31,9 +31,12 @@
       --inner-bg:#000000;
     }
 
-    .app-grid{ height:calc(100vh - var(--header-h) - var(--footer-h) - var(--grid-gap)); min-height:500px; }
+    /* MODIFIED: This fixed height now only applies to large screens (lg) to allow mobile scrolling */
+    @media (min-width: 1024px) {
+      .app-grid{ height:calc(100vh - var(--header-h) - var(--footer-h) - var(--grid-gap)); min-height:500px; }
+    }
 
-    /* Prism line numbers */
+    /* Prism line numbers styling (unchanged) */
     pre[class*="language-"].line-numbers{position:relative;padding-left:3.8em!important;counter-reset:linenumber;}
     .line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;letter-spacing:-1px;border-right:1px solid #374151;user-select:none;}
     .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber;}
@@ -51,7 +54,7 @@
     #input-code-highlighted>pre{position:absolute;inset:0;pointer-events:none;z-index:0;}
   </style>
 </head>
-<body class="bg-gray-900 text-white antialiased flex flex-col h-screen overflow-hidden scrollbar-hidden">
+<body class="bg-gray-900 text-white antialiased flex flex-col min-h-screen">
 
   <!-- Header -->
   <div class="container mx-auto px-4 pt-6 flex-shrink-0" style="height:var(--header-h);">
@@ -66,12 +69,12 @@
   </div>
 
   <!-- Main -->
-  <main id="main-container" class="container mx-auto px-4 flex-1 min-h-0 pb-[calc(var(--footer-h)+var(--grid-gap))]">
-    <div class="flex flex-col gap-[var(--grid-gap)] min-h-0">
+  <main id="main-container" class="container mx-auto px-4 flex-1 pb-4">
+    <div class="flex flex-col gap-[var(--grid-gap)] h-full">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-[var(--grid-gap)] app-grid">
         <!-- Your Code -->
-        <section class="min-h-0">
-          <div class="h-full rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden">
+        <section class="min-h-[300px] lg:min-h-0">
+          <div class="h-full rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden flex flex-col">
             <div class="px-4 py-2 border-b border-[var(--card-border)] flex items-center justify-between">
               <h3 class="text-xs font-bold text-indigo-300 tracking-widest uppercase">Your Code</h3>
               <div class="flex items-center space-x-3">
@@ -79,7 +82,7 @@
                 <button id="clear-btn" class="text-gray-400 hover:text-white">&#x1F5D1;</button>
               </div>
             </div>
-            <div class="p-2 h-[calc(100%-40px)]">
+            <div class="p-2 h-full flex-grow">
               <div id="input-code-highlighted" class="relative w-full h-full overflow-auto bg-[var(--inner-bg)] rounded-[calc(var(--card-radius)-0.25rem)]">
                 <textarea id="input-code" spellcheck="false"></textarea>
                 <pre class="line-numbers"><code id="input-code-display" class="language-js"></code></pre>
@@ -89,7 +92,7 @@
         </section>
 
         <!-- Right: equal-height two rows -->
-        <section class="relative min-h-0">
+        <section class="relative min-h-[600px] lg:min-h-0">
           <div id="loader" class="absolute inset-0 bg-gray-900/80 flex items-center justify-center rounded-[var(--card-radius)] hidden z-30">
             <div class="flex flex-col items-center">
               <svg class="animate-spin h-8 w-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -100,18 +103,18 @@
             </div>
           </div>
 
-          <div class="grid grid-rows-2 gap-4 h-full min-h-0">
-            <div class="rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden min-h-0">
+          <div class="grid grid-rows-2 gap-4 h-full">
+            <div class="rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden flex flex-col">
               <div class="px-4 py-2 border-b border-[var(--card-border)] flex items-center justify-between">
                 <h3 class="text-xs font-bold text-indigo-300 tracking-widest uppercase">Review & Mistakes</h3>
                 <button class="fullscreen-btn text-gray-400 hover:text-white" data-target="review-output">&#x26F6;</button>
               </div>
-              <div class="p-2 h-[calc(100%-40px)]">
+              <div class="p-2 h-full flex-grow">
                 <div id="review-output" class="w-full h-full p-4 overflow-auto text-sm space-y-4 bg-[var(--inner-bg)] rounded-[calc(var(--card-radius)-0.25rem)]">AI's feedback will appear here...</div>
               </div>
             </div>
 
-            <div class="rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden min-h-0">
+            <div class="rounded-[var(--card-radius)] border border-[var(--card-border)] bg-[var(--card-bg)] shadow-lg overflow-hidden flex flex-col">
               <div class="px-4 py-2 border-b border-[var(--card-border)] flex items-center justify-between">
                 <h3 class="text-xs font-bold text-indigo-300 tracking-widest uppercase">Updated Code</h3>
                 <div class="flex items-center space-x-3">
@@ -119,7 +122,7 @@
                   <button id="copy-btn" class="text-gray-400 hover:text-white">&#x1F4CB;</button>
                 </div>
               </div>
-              <div class="p-2 h-[calc(100%-40px)]">
+              <div class="p-2 h-full flex-grow">
                 <div id="output-code-container" class="w-full h-full overflow-auto bg-[var(--inner-bg)] rounded-[calc(var(--card-radius)-0.25rem)]"></div>
               </div>
             </div>
@@ -133,7 +136,7 @@
     </div>
   </main>
 
-  <!-- Footer: SCORE minimized to exactly the Review button size -->
+  <!-- Footer: MODIFIED to be sticky -->
   <footer class="sticky bottom-0 z-40 bg-gray-900/90 backdrop-blur border-t border-gray-800" style="height:var(--footer-h);">
     <div class="container mx-auto px-4 h-full">
       <div class="h-full grid grid-cols-1 md:grid-cols-3 items-center gap-4">
@@ -162,7 +165,7 @@
     </div>
   </footer>
 
-  <!-- Modal -->
+  <!-- Modal (Unchanged) -->
   <div id="modal" class="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm hidden z-50 p-4 sm:p-8 flex flex-col">
     <div class="flex justify-between items-center mb-4 flex-shrink-0">
       <h3 id="modal-title" class="text-lg font-bold text-indigo-300 tracking-widest uppercase"></h3>
@@ -180,7 +183,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 
   <script type="module">
-    // --- ELEMENT SELECTORS ---
+    // --- ELEMENT SELECTORS (Unchanged) ---
     const allElements = {
       reviewBtn: document.getElementById('review-btn'),
       clearBtn: document.getElementById('clear-btn'),
@@ -204,7 +207,7 @@
     let lastUpdatedCode = '';
     let lastUpdatedLang = 'clike';
 
-    // --- SYNTAX HIGHLIGHTING FOR INPUT AREA ---
+    // --- SYNTAX HIGHLIGHTING FOR INPUT AREA (Unchanged) ---
     function updateInputHighlight() {
       const code = allElements.inputCode.value;
       const tempCodeEl = document.createElement('code');
@@ -222,9 +225,10 @@
       preElement.scrollLeft = allElements.inputCode.scrollLeft;
     });
 
-    // --- API CALL LOGIC (plain text + tolerant JSON parse) ---
+    // --- ORIGINAL API CALL LOGIC (RESTORED) ---
+    // WARNING: Exposing your API key in client-side code is a security risk.
     async function callGeminiAPI(code) {
-      const apiKey = "AIzaSyDxmB3457Wevp0amc-QzT56HfyyvdkJfyo"; // unchanged
+      const apiKey = "AIzaSyDxmB3457Wevp0amc-QzT56HfyyvdkJfyo"; 
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
       const payload = {
@@ -259,12 +263,27 @@
       return parseWithRepair(textResponse);
     }
 
+    // --- MODIFIED: New, improved prompt for the AI ---
     function buildPrompt(code) {
       return `
-Analyze the code snippet. If it's not code, return exactly: {"error":"Input is not a valid code snippet."}
-If it is code, return a single JSON object with:
-{"language":"...","review":"... (markdown bullets allowed)","updatedCode":"... or empty string","score":NUMBER}
-No extra commentary outside JSON.
+Act as an expert senior software developer and code reviewer.
+Your task is to provide a detailed, constructive review of the following code snippet.
+
+Analyze the code based on these criteria:
+1.  **Correctness and Bugs:** Identify any logic errors, potential runtime errors, or edge cases that are not handled.
+2.  **Best Practices and Readability:** Check for adherence to common coding standards, clarity, naming conventions, and overall code structure. Is the code easy to understand and maintain?
+3.  **Performance:** Point out any obvious performance inefficiencies or suggestions for optimization.
+4.  **Security:** Look for common security vulnerabilities (e.g., injection risks, insecure handling of data).
+
+Your response MUST be a single, raw JSON object, with no extra commentary, markdown formatting, or text outside of the JSON structure.
+
+The JSON object must have the following keys:
+{
+  "language": "The detected programming language (e.g., 'JavaScript', 'Python').",
+  "review": "A detailed review in markdown format. Use bullet points. Explain *why* something is an issue and provide clear, actionable feedback.",
+  "updatedCode": "The full code snippet with your suggested improvements applied. If no changes are needed, return the original code.",
+  "score": "A single integer score from 1 to 10, where 1 means the code has critical issues and 10 means the code is excellent and follows all best practices."
+}
 
 Code to review:
 \`\`\`
@@ -299,6 +318,25 @@ ${code}
       }
     }
 
+    // --- NEW: API RETRY LOGIC ---
+    // This function will automatically retry the API call once if it fails.
+    async function callGeminiAPIWithRetry(code, maxRetries = 1) {
+      let attempt = 0;
+      while (attempt <= maxRetries) {
+        try {
+          return await callGeminiAPI(code);
+        } catch (error) {
+          attempt++;
+          if (attempt > maxRetries) {
+            console.error("API call failed after multiple retries.", error);
+            throw error;
+          }
+          console.warn(`API call failed (attempt ${attempt}). Retrying in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
     allElements.reviewBtn.addEventListener('click', async () => {
       const userCode = allElements.inputCode.value.trim();
       if (!userCode) { showError("Please paste some code to review."); return; }
@@ -309,7 +347,8 @@ ${code}
       allElements.reviewBtn.disabled = true;
 
       try {
-        const result = await callGeminiAPI(userCode);
+        // MODIFIED: Using the new retry function
+        const result = await callGeminiAPIWithRetry(userCode);
         if (result.error) { throw new Error(result.error); }
         allElements.reviewOutput.innerHTML = formatReviewAsHtml(result.review);
         let codeToDisplay = "No changes needed. Your code is looking great!";
@@ -326,6 +365,7 @@ ${code}
       }
     });
 
+    // --- UTILITY FUNCTIONS (Unchanged) ---
     function clearAll() {
       allElements.inputCode.value = '';
       updateInputHighlight();
@@ -399,7 +439,22 @@ ${code}
         if(t){ html+=`<div class="flex items-start space-x-3 text-gray-300"><span class="text-indigo-400 text-lg mt-1">&#10148;</span><p class="flex-1">${t.replace(/\*\*(.*?)\*\*/g,'<strong class="font-semibold text-indigo-300">$1</strong>')}</p></div>`;}
       }); return html;
     }
-    function animateScore(finalScore){ let currentScore=0; const timer=setInterval(()=>{ currentScore++; allElements.scoreDisplay.textContent=currentScore; if(currentScore>=finalScore) clearInterval(timer); },20); }
+    
+    // MODIFIED: Score animation and format updated
+    function animateScore(finalScore){
+      const targetScore = Math.max(0, Math.min(10, parseInt(finalScore, 10) || 0));
+      let currentScore = 0;
+      allElements.scoreDisplay.textContent = '0/10';
+      if (targetScore === 0) return;
+      const timer = setInterval(() => {
+        currentScore++;
+        allElements.scoreDisplay.textContent = `${currentScore}/10`;
+        if(currentScore >= targetScore) {
+          clearInterval(timer);
+        }
+      }, 50);
+    }
+
     function showError(message){ allElements.errorMessage.textContent=message; allElements.errorBox.classList.remove('hidden'); setTimeout(()=>hideError(),5000); }
     function hideError(){ allElements.errorBox.classList.add('hidden'); }
 
@@ -407,3 +462,4 @@ ${code}
   </script>
 </body>
 </html>
+

@@ -16,8 +16,8 @@ exports.handler = async function (event) {
       return { statusCode: 500, body: JSON.stringify({ error: 'API key is not configured on the server.' }) };
     }
 
-    // MODIFIED: Changed the model name to the correct, stable version 'gemini-pro'
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    // MODIFIED: Changed the model name back to the stable version that was working previously.
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
     const prompt = `
 Act as an expert senior software developer and code reviewer.

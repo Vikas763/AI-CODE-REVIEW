@@ -17,7 +17,7 @@ exports.handler = async function (event) {
     }
 
     // MODIFIED: Changed the model name back to the stable version that was working previously.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const prompt = `
 Act as an expert senior software developer and code reviewer.
